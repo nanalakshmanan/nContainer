@@ -7,8 +7,8 @@ $sut = (Split-Path -Leaf $MyInvocation.MyCommand.Path).Replace(".Tests.", ".")
 function Init-Container
 {
     $global:Containers = @{}
-    $global:Containers += @{PresentRunning = @{Name = 'PresentRunning';ImageName = 'WindowsServerCore';State = 'Running';SwitchName = 'DemoSwitch'}}
-    $global:Containers += @{PresentOff = @{Name = 'PresentOff';ImageName = 'WindowsServerCore';State = 'Off';SwitchName = 'DemoSwitch'}}
+    $global:Containers += @{PresentRunning = @{Id = 1; Name = 'PresentRunning';ImageName = 'WindowsServerCore';State = 'Running';SwitchName = 'DemoSwitch'}}
+    $global:Containers += @{PresentOff = @{Id = 2; Name = 'PresentOff';ImageName = 'WindowsServerCore';State = 'Off';SwitchName = 'DemoSwitch'}}
 }
 #endregion Helper function
 
@@ -59,7 +59,7 @@ AfterAll {
 
         Mock -ModuleName nContainer -CommandName New-Container -MockWith {
 
-            $Container = @{Name = $Name;ImageName = $ImageName; State = 'Off'; SwitchName = $SwitchName}
+            $Container = @{Name = $Name;ImageName = $ImageName; State = 'Off'; SwitchName = $SwitchName; Id = (Get-Random -Minimum 2 -Maximum 100)}
             $global:Containers += @{$Name = $Container }
             $MockObject = New-Object psobject -Property $Value
             $MockObject.PSTypeNames[0] = 'Microsoft.Containers.PowerShell.Objects.Container'
@@ -276,9 +276,16 @@ AfterAll {
             }
         }
 
+        BeforeEach {Init-Container}
+
         It 'Get(): Ensure : <Ensure>, Actual : <Actual>, desired state : <State>, current state : <CurrentState>' -TestCases $Testcases {
 
                     param( $Ensure, $Actual, $State, $CurrentState)
+
+            if ($Actual -eq 'Absent')
+            {
+                $Global:Containers = @{}
+            }
 
             $Container = New-nContainer
             $Name = ($Actual + $CurrentState).Trim()
@@ -293,6 +300,17 @@ AfterAll {
             $ReturnValue.Name | Should be $Name
             $ReturnValue.ImageName | Should be 'WindowsServerCore'
             $ReturnValue.VirtualSwitchName | Should be 'DemoSwitch'
+
+            if ($Actual -eq 'Absent')
+            {
+                $ReturnValue.Id | Should be 0
+                $ReturnValue.State | Should be $State
+            }
+            else
+            {
+                $ReturnValue.Id | should not be 0
+                $ReturnValue.State | Should be $CurrentState
+            }
         }
     }
 }
