@@ -173,7 +173,7 @@ class nContainer
 
 [void] AssertImageAvailable()
 {
-    [array]$ev = $Null
+    [Collections.ArrayList]$ev = $Null
 
     [array]$ContainerImage = Get-ContainerImage -Name $this.ImageName -ErrorAction SilentlyContinue -ErrorVariable ev 
 
@@ -185,11 +185,11 @@ class nContainer
 
 [void] AssertSwitchAvailable()
 {
-    $ev = $null
+    [Collections.ArrayList]$ev = $null
 
     Get-VMSwitch -Name $this.VirtualSwitchName -ErrorAction SilentlyContinue -ErrorVariable ev
 
-    if ($ev -ne $null)
+    if ($ev.Count -ne 0)
     {
         throw "Specified switch $($this.VirtualSwitchName) is not available"
     }

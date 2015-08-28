@@ -51,9 +51,16 @@ AfterAll {
 
         Mock -ModuleName nContainer -CommandName Get-VMSwitch -MockWith {
             
+            [CmdletBinding()]
+            param([string]$Name)
+
             if ($global:VMSwitches.ContainsKey($Name))
             {
                 return $global:VMSwitches[$Name]
+            }
+            else
+            {
+                Write-Error "Virtual switch $Name not found"
             }
         }
 
@@ -128,6 +135,7 @@ AfterAll {
         It "Test VM Switch validation" {
             $Container = New-nContainer
             $Container.VirtualSwitchName = 'NonExistent'
+            $Container.ImageName = 'WindowsServerCore'
 
             {$Container.Test()} | should throw
         }
