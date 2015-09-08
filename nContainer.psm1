@@ -14,7 +14,7 @@ enum State
 class nContainer
 {
 
-#region Hiddel Members
+#region Hidden Members
 
     hidden [object] $Container
 
@@ -203,3 +203,148 @@ function New-nContainer
 {
     [nContainer]::new()
 }
+
+
+[DscResource()]
+class nContainerImage
+{
+
+#region Hidden Members
+
+    hidden [object] $ContainerImage
+
+#endregion
+
+#region DSC properties
+
+    [DscProperty(Key)]
+    [string]$Name
+
+    [DscProperty(Mandatory)]
+    [string]$ContainerName
+
+    [DscProperty(Mandatory)]
+    [string]$Publisher
+
+    [DscProperty(Mandatory)]
+    [string]$Version
+
+    [DscProperty(NotConfigurable)]
+    [bool]$IsDeleted
+
+    [DscProperty(NotConfigurable)]
+    [bool]$IsOSImage
+
+    [DscProperty(NotConfigurable)]
+    [Microsoft.Containers.PowerShell.Objects.ContainerImage]$ParentImage
+
+    [DscProperty(NotConfigurable)]
+    [string]$FullName
+
+    [DscProperty()]
+    [Ensure]$Ensure = 'Present'
+
+#endregion
+
+#region DSC Methods
+    [bool] Test()
+    {
+        [Collections.ArrayList]$ev = $null
+
+        $this.ContainerImage = Test-ContainerImage -Name $this.Name -ErrorAction SilentlyContinue -ErrorVariable ev
+
+        # should be present, but not present
+        if (($this.Ensure -eq 'Present') -and ($this.ContainerImage -eq $null))
+        {
+            return $false
+        }
+
+        # should be absent
+        if ($this.Ensure -eq 'Absent') 
+        {
+            # but present
+            if ($this.ContainerImage -ne $null)
+            {
+                return $false
+            }
+            # and absent
+            else
+            {
+                return $true
+            }
+        }
+        
+        return $true
+    }
+
+    [void] Set()
+    {
+        [Collections.ArrayList]$ev = $null
+
+        $this.ContainerImage = Get-ContainerImage -Name $this.Name -ErrorAction SilentlyContinue -ErrorVariable ev
+
+        # if container should be absent, remove if it already exists
+        if ($this.Ensure -eq 'Absent')
+        {
+            if ($this.ContainerImage -eq $null)
+            {
+                return
+            }
+
+            Write-Verbose "Removing container image $($this.Name)"
+            Remove-ContainerImage -Name $this.Name
+
+            return
+        }
+
+
+        # Container object being null implies that it does not exist
+        if ($this.ContainerImage -eq $null)
+        {
+            Write-Verbose "Creating new container image $($this.Name)"
+            $this.ContainerImage = New-ContainerImage -Name $this.Name -ContainerName $this.ContainerName -Publisher $this.Publisher -Version $this.Version
+        }
+        
+    }
+
+    [nContainerImage] Get()
+    {
+        $ev = $null
+       
+        $this.ContainerImage = Get-ContainerImage -Name $this.Name -ErrorAction SilentlyContinue -ErrorVariable ev
+
+        $result = @{
+            Name             = $this.Name;
+        }
+
+
+        if ($ev -ne $null)
+        {
+            $result.Add("Publisher",$this.Publisher);
+            $result.Add("Version",$this.Version);            
+        }
+        else
+        {   
+            $result.Add("Publisher", $this.ContainerImage.Publisher);
+            $result.Add("Version", $this.ContainerImage.Version);
+            $result.Add("ParentImage", $this.ContainerImage.ParentImage);
+            $result.Add("IsDeleted", $this.ContainerImage.IsDeleted);
+            $result.Add("IsOSImage", $this.ContainerImage.IsOSImage);
+            $result.Add("FullName", $this.ContainerImage.FullName);
+            
+        }
+
+        return $result
+        
+    }
+
+#endregion
+
+}
+
+function New-nContainerImage
+{
+    [nContainerImage]::new()
+}
+
+

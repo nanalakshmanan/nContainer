@@ -17,6 +17,16 @@
         State     = 'Off'
         VirtualSwitchName = 'DemoSwitch'
     }
+
+    nContainerImage ContainerImage
+    {
+        Name = 'TestContainerImage'
+        ContainerName = 'TestContainer'
+        Publisher = 'CN=Microsoft'
+        Version = '1.0.0.0'
+        Ensure = 'Present'
+        DependsOn = '[nContainer]Container'
+    }
 }
 
 $ScriptPath = Split-Path $MyInvocation.MyCommand.Path
